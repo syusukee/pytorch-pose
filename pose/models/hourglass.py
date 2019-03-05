@@ -111,6 +111,7 @@ class Hourglass(nn.Module):
 
 
     def forward(self, x):
+        global isFirst
         if isFirst:
             isFirst = 0
             return self._hour_glass_forward_first(self.depth, x)

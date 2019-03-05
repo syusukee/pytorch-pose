@@ -29,6 +29,7 @@ class Bottleneck(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
         self.stride = stride
+        
 
     def forward(self, x):
         residual = x

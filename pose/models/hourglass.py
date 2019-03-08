@@ -60,6 +60,7 @@ class Hourglass(nn.Module):
         self.depth = depth
         self.block = block
         self.hg = self._make_hour_glass(block, num_blocks, planes, depth)
+        self.conv11 = nn.Conv2d(planes*block.expansion, planes*block.expansion, kernel_size=1, bias=True)
 
 
     def _make_residual(self, block, num_blocks, planes):
@@ -84,11 +85,12 @@ class Hourglass(nn.Module):
         low1 = F.max_pool2d(x, 2, stride=2)
         low1 = self.hg[n-1][1](low1)
         if n > 1:
-            low2 = self._hour_glass_forward(n-1, low1)
+            low2 = self._hour_glass_forward_first(n-1, low1)
         else:
             low2 = self.hg[n-1][3](low1)
         low3 = self.hg[n-1][2](low2)
         up2 = F.interpolate(low3, scale_factor=2)
+        global savedata
         savedata.append(up1)
         savedata.append(up2)
         out = up1 + up2
@@ -99,23 +101,33 @@ class Hourglass(nn.Module):
         low1 = F.max_pool2d(x, 2, stride=2)
         low1 = self.hg[n-1][1](low1)
         if n > 1:
-            low2 = self._hour_glass_forward(n-1, low1)
+            low2 = self._hour_glass_forward_others(n-1, low1)
         else:
             low2 = self.hg[n-1][3](low1)
         low3 = self.hg[n-1][2](low2)
         up2 = F.interpolate(low3, scale_factor=2)
+        global savedata
         savedata.append(up1)
         savedata.append(up2)
-        out = up1 + up2 + savedata[2*(n-1)] + savedata[2*(n-1)+1]
+        # print(n)
+        # print(2*(n-1))
+        add1 = self.conv11(savedata[2*(n-1)])
+        add2 = self.conv11(savedata[2*(n-1)+1])
+        out = up1 + up2 + add1 + add2
+        #out = up1 + up2 + savedata[2*(n-1)] + savedata[2*(n-1)+1]
+        #out = up1 + up2
         return out
 
 
     def forward(self, x):
         global isFirst
+        global savedata
         if isFirst:
             isFirst = 0
+            savedata = []
             return self._hour_glass_forward_first(self.depth, x)
         else:
+            isFirst = 1
             return self._hour_glass_forward_others(self.depth, x)
 
 

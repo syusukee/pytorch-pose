@@ -3,6 +3,10 @@ from __future__ import print_function, absolute_import
 import os
 import argparse
 import time
+
+import matplotlib
+matplotlib.use('Agg')
+
 import matplotlib.pyplot as plt
 
 import torch
@@ -23,6 +27,10 @@ import pose.models as models
 import pose.datasets as datasets
 import pose.losses as losses
 
+from tensorboardX import SummaryWriter
+
+# CREATE WRITER
+writer = SummaryWriter()
 
 # get model names and dataset names
 model_names = sorted(name for name in models.__dict__
@@ -150,6 +158,9 @@ def main(args):
         train_loss, train_acc = train(train_loader, model, criterion, optimizer,
                                       args.debug, args.flip)
 
+        # DRAW THE LOSS
+        writer.add_scalar("loss", train_loss, epoch + 1)
+
         # evaluate on validation set
         valid_loss, valid_acc, predictions = validate(val_loader, model, criterion,
                                                   njoints, args.debug, args.flip)
@@ -167,6 +178,9 @@ def main(args):
             'best_acc': best_acc,
             'optimizer' : optimizer.state_dict(),
         }, predictions, is_best, checkpoint=args.checkpoint, snapshot=args.snapshot)
+
+    # CLOSE WRITER
+    writer.close()
 
     logger.close()
     logger.plot(['Train Acc', 'Val Acc'])
